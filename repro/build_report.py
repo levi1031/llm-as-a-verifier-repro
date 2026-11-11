@@ -372,7 +372,7 @@ tokens — so the saving is in the noise: measured cost per call stayed at ≈ �
 configurations. Granularity buys resolution, not tokens.
 </p>
 
-<h2 class="pb">7. Debug diary</h2>
+<h2>7. Debug diary</h2>
 <table>
 <tr><th style="width:31%">blocker</th><th style="width:34%">symptom</th><th>how it was resolved</th></tr>
 <tr><td>github.com, raw.githubusercontent.com, huggingface.co unreachable</td>
