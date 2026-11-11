@@ -1,0 +1,15 @@
+{
+  "n_comparisons_scored_twice": 282,
+  "mean_abs_delta_score": 0.1105,
+  "median_abs_delta_score": 0.0526,
+  "mean_abs_margin_base": 0.3173,
+  "mean_abs_margin_mod": 0.3692,
+  "distinct_values_base": 22,
+  "distinct_values_mod": 8,
+  "flip_rate_informative": 0.1129,
+  "flip_n_informative": 21,
+  "n_informative": 186,
+  "flip_rate_uninformative": 0.3021,
+  "flip_n_uninformative": 29,
+  "n_uninformative": 96
+}

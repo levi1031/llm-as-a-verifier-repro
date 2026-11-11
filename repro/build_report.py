@@ -125,6 +125,8 @@ def main():
     args = ap.parse_args()
 
     runs = json.load(open(args.json))
+    ov_path = os.path.join(ROOT, "results", "ablation_overlap.json")
+    ov = json.load(open(ov_path)) if os.path.exists(ov_path) else {}
     meta = json.load(open(args.meta))
     base, mod = runs[0], runs[1]
     figs = {}
@@ -147,6 +149,25 @@ def main():
 
     rows = "\n".join(row(r) for r in runs)
     per_task = per_task_table(base, mod)
+    if ov:
+        overlap_para = (
+            "<p><b>The ablation did move the votes, though.</b> On the "
+            f"{ov['n_comparisons_scored_twice']} comparisons that were scored under both "
+            f"configurations, the mean absolute score change is {ov['mean_abs_delta_score']:.3f} "
+            f"(median {ov['median_abs_delta_score']:.3f}), the preference margin widens from "
+            f"{ov['mean_abs_margin_base']:.3f} to {ov['mean_abs_margin_mod']:.3f}, and the number "
+            f"of distinct score values collapses from {ov['distinct_values_base']} to "
+            f"{ov['distinct_values_mod']}. More tellingly, the pairwise preference flips on "
+            f"{ov['flip_n_informative']} of the {ov['n_informative']} comparisons whose two trials "
+            f"actually disagree ({100*ov['flip_rate_informative']:.1f}%), against "
+            f"{ov['flip_n_uninformative']} of {ov['n_uninformative']} comparisons whose trials share "
+            f"the same outcome ({100*ov['flip_rate_uninformative']:.1f}%). Five-fold coarsening "
+            "therefore rewrites roughly one vote in nine where it matters and almost one in three "
+            "where it cannot matter — and because a task's decision aggregates 30 votes "
+            "(5 directed comparisons × 3 criteria × K=2), the flips cancel instead of changing "
+            "the winner. The tournament is robust to the label alphabet, not blind to it.</p>")
+    else:
+        overlap_para = ""
     p_task = binom_tail(base["verifier"], base["tasks"])
     p_1task = binom_tail(7, 12)
     p_2task = binom_tail(10, 12)
@@ -394,6 +415,7 @@ configuration, which is why every configuration here is single-backend.
 <div class="cap"><b>Figure 3.</b> Distribution of verifier rewards per configuration; red ticks
 are the g-point grid. Both pile up on the grid, which is why coarsening the scale mostly relabels
 the same ordering.</div>
+{overlap_para}
 <p>
 <b>What this null result can and cannot mean.</b> At n = 12 with one seed, a one-task difference
 is undetectable (exact binomial p = {p_1task:.2f}); a two-task difference would have shown up
@@ -495,7 +517,7 @@ retried calls, not lost work).</p>
 <table>
 <tr><th style="width:26%">commit</th><th>content</th></tr>
 <tr><td><code>vendor: upstream snapshot</code></td><td>unmodified copy of the authors' repository at <code>main</code>; only <code>.gitignore</code> extended (data/ is fetched, not vendored)</td></tr>
-<tr><td><code>repro: tooling</code></td><td><code>repro/fetch_data.py</code>, <code>repro/data_manifest.json</code>, <code>repro/make_manifest.py</code>, <code>repro/run_bo3.py</code> (subset scoping + per-configuration cache), <code>repro/analyze.py</code>, <code>repro/figures.py</code>, <code>repro/build_report.py</code>, <code>repro/build_deck.py</code>, <code>REPRO.md</code></td></tr>
+<tr><td><code>repro: tooling</code></td><td><code>repro/fetch_data.py</code>, <code>repro/data_manifest.json</code>, <code>repro/make_manifest.py</code>, <code>repro/run_bo3.py</code> (subset scoping + per-configuration cache), <code>repro/analyze.py</code>, <code>repro/ablation_overlap.py</code>, <code>repro/figures.py</code>, <code>repro/build_report.py</code>, <code>repro/build_deck.py</code>, <code>REPRO.md</code></td></tr>
 <tr><td><code>mod(granularity)</code></td><td>the one modification: configurable score scale, default g=20 byte-identical to upstream (+74/−19 lines, one file)</td></tr>
 <tr><td><code>repro-compat</code></td><td>env-gated backend compatibility for a logprob-free hosting endpoint (documented as a deviation, not part of the modification)</td></tr>
 </table>
