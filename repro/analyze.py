@@ -110,11 +110,71 @@ def degeneracy(values, granularity):
     }
 
 
+
+def usage_from_logs(tag):
+    """Token accounting for a run, parsed from the run's log if present."""
+    import glob
+    import re as _re
+    path = os.path.join(ROOT_DIR, "logs", f"{tag}.log")
+    if not os.path.exists(path):
+        return {}
+    text = open(path, errors="ignore").read()
+    calls = _re.findall(r"Tokens: ([\d,]+) calls  input ([\d,]+) \(cached ([\d,]+),", text)
+    out = _re.findall(r"output ([\d,]+)", text)
+    if not calls:
+        return {}
+    c = sum(int(x[0].replace(",", "")) for x in calls)
+    i = sum(int(x[1].replace(",", "")) for x in calls)
+    ca = sum(int(x[2].replace(",", "")) for x in calls)
+    o = sum(int(x.replace(",", "")) for x in out)
+    return {"calls": c, "input_tokens": i, "cached_input_tokens": ca,
+            "output_tokens": o,
+            "errors": text.count("\n  Error: ")}
+
+
 def analyse(tag, granularity, tasks):
     path = os.path.join(ROOT_DIR, "cache", f"cache_tb2.1_{tag}.json")
     scores = json.load(open(path))
     all_pass, all_fail, _swing_all = classify(tasks)
-    scored_tasks = sorted({k.split("|")[1] for k in scores})
+    # Only tasks whose *every* comparison is cached may enter the tournament:
+    # a missing entry defaults to a 0.5/0.5 tie, which would silently decide
+    # the ranking by index order. The number of distinct comparisons per task
+    # is 4 or 5 (a pivot-round pair can coincide with a ring pair), so the
+    # check walks the actual pairs the tournament will use.
+    per_task = {}
+    for k in scores:
+        per_task[k.split("|")[1]] = per_task.get(k.split("|")[1], 0) + 1
+    candidates = sorted(per_task)
+    all_rings = ring_of(candidates, tasks)
+    scored_tasks, incomplete = [], {}
+    for t in candidates:
+        ring = all_rings[t]
+        missing = [cache_key(c, t, a, b, r) for c, a, b, r in
+                   ((c, a, b, r) for a, b in ring for c in CRITERIA
+                    for r in range(2))
+                   if cache_key(c, t, a, b, r) not in scores]
+        if missing:
+            incomplete[t] = f"{len(missing)} ring comparisons missing"
+            continue
+        w, c = [0.0] * len(tasks[t]), [0] * len(tasks[t])
+        ppt.accumulate(ring, lambda a, b, t=t: directed_reward(
+            scores, t, a, b, CRITERIA, 2), w, c)
+        pr = ppt.pivot_round_pairs(len(tasks[t]), ppt.select_pivots(w, c, PIVOTS))
+        missing = [cache_key(cr, t, a, b, r) for cr, a, b, r in
+                   ((cr, a, b, r) for a, b in pr for cr in CRITERIA
+                    for r in range(2))
+                   if cache_key(cr, t, a, b, r) not in scores]
+        if missing:
+            incomplete[t] = f"{len(missing)} pivot comparisons missing"
+            continue
+        scored_tasks.append(t)
+    if incomplete:
+        print(f"  [warn] {tag}: {len(incomplete)} task(s) skipped, "
+              f"cache incomplete (e.g. {list(incomplete.items())[:2]})")
+    if not scored_tasks:
+        raise SystemExit(f"{tag}: no completely scored task in the cache")
+    print(f"  {tag}: {len(scored_tasks)} completely scored tasks "
+          f"({len(scores)} cached entries)")
     sub = {t: tasks[t] for t in scored_tasks}
     rings = ring_of(scored_tasks, sub)
     selected, pairs_used = tournament(scores, sub, rings)
@@ -169,6 +229,15 @@ def analyse(tag, granularity, tasks):
         "mean_reward_fail": statistics.mean(neg) if neg else float("nan"),
         "degeneracy": degeneracy(values, granularity),
         "cache_entries": len(scores),
+        # per-task evidence: rewards of the (first three) trials, which trial
+        # the tournament selected, and whether that trial succeeded
+        "per_task": [
+            {"task": t,
+             "rewards": [x["reward"] for x in sub[t]],
+             "selected": selected[t],
+             "ok": sub[t][selected[t]]["reward"] == 1}
+            for t in sorted(sub)],
+        "usage": usage_from_logs(tag),
     }
 
 
