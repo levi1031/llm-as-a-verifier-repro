@@ -1,0 +1,81 @@
+{
+  "n_seeds": 3,
+  "tasks": 12,
+  "per_seed": [
+    {
+      "seed": 0,
+      "tag": "sub12_g20",
+      "pass1": 50.0,
+      "verifier": 91.66666666666667,
+      "oracle": 100.0,
+      "pairwise_acc": 90.3225806451613,
+      "trial_auc": 0.8611111111111112,
+      "verifier_tasks": 11
+    },
+    {
+      "seed": 1,
+      "tag": "sub12_g20_s1",
+      "pass1": 50.0,
+      "verifier": 91.66666666666667,
+      "oracle": 100.0,
+      "pairwise_acc": 88.57142857142857,
+      "trial_auc": 0.8425925925925926,
+      "verifier_tasks": 11
+    },
+    {
+      "seed": 2,
+      "tag": "sub12_g20_s2",
+      "pass1": 50.0,
+      "verifier": 91.66666666666667,
+      "oracle": 100.0,
+      "pairwise_acc": 93.93939393939394,
+      "trial_auc": 0.8179012345679012,
+      "verifier_tasks": 11
+    }
+  ],
+  "Pass@1 %": {
+    "mean": 50.0,
+    "std": 0.0,
+    "values": [
+      50.0,
+      50.0,
+      50.0
+    ]
+  },
+  "verifier %": {
+    "mean": 91.67,
+    "std": 0.0,
+    "values": [
+      91.67,
+      91.67,
+      91.67
+    ]
+  },
+  "oracle %": {
+    "mean": 100.0,
+    "std": 0.0,
+    "values": [
+      100.0,
+      100.0,
+      100.0
+    ]
+  },
+  "pairwise_acc": {
+    "mean": 90.94,
+    "std": 2.74,
+    "values": [
+      90.32,
+      88.57,
+      93.94
+    ]
+  },
+  "trial_auc": {
+    "mean": 0.841,
+    "std": 0.022,
+    "values": [
+      0.861,
+      0.843,
+      0.818
+    ]
+  }
+}

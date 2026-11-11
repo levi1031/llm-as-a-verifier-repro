@@ -126,6 +126,9 @@ def main():
     args = ap.parse_args()
 
     runs = json.load(open(args.json))
+    seed_path = os.path.join(ROOT, "results", "seed_stats.json")
+    seeds = json.load(open(seed_path)) if os.path.exists(seed_path) else {}
+    nseeds = seeds.get("n_seeds", 1)
     meta = json.load(open(args.meta))
     figs = os.path.join(ROOT, "report", "figs")
     by_tag = {r["tag"]: r for r in runs}
@@ -171,7 +174,8 @@ def main():
         [["verifier model", "gemini-2.5-flash / deepseek-v4-flash", meta["model"]],
          ["backend", "Vertex AI / DeepSeek", meta["backend"]],
          ["decoding", "T=1.0, logprobs", "T=1.0, thinking=high, text fallback"],
-         ["scope", "66 tasks × 5 rollouts, 3 seeds", f"{base['tasks']} swing tasks, 1 seed"],
+         ["scope", "66 tasks × 5 rollouts, 3 seeds",
+          f"{base['tasks']} swing tasks, {nseeds} seed(s) baseline"],
          ["config", "K=2, pivots=1, 3 criteria", "identical"],
          ["compute", "—", meta["compute"]]],
         "Two controlled deviations, both forced by the environment: the verifier model "
@@ -240,13 +244,20 @@ def main():
         prs,
         "Modification: score granularity g20 → g5",
         ["config", "Pass@1", "verifier", "oracle", "pairwise acc.", "trial AUC"],
-        [[r["tag"], f"{pct(r,'pass1'):.1f}%", f"{pct(r,'verifier'):.1f}%",
+        [[r["tag"],
+          f"{pct(r,'pass1'):.1f}%",
+          (f"{seeds['verifier %']['mean']:.1f}% ± {seeds['verifier %']['std']:.1f}"
+           if (i == 0 and nseeds > 1) else f"{pct(r,'verifier'):.1f}%"),
           f"{pct(r,'oracle'):.1f}%",
-          f"{100*r['pairwise_agree']/max(1,r['pairwise_total']):.1f}%",
-          f"{r['trial_auc']:.3f}"] for r in runs],
+          (f"{seeds['pairwise_acc']['mean']:.1f}%"
+           if (i == 0 and nseeds > 1) else
+           f"{100*r['pairwise_agree']/max(1,r['pairwise_total']):.1f}%"),
+          f"{r['trial_auc']:.3f}"] for i, r in enumerate(runs)],
         "One change, isolated in the scale definition: 20 letters (A-T) → 5 letters (A-E). "
         "Unset, the code is byte-identical to upstream. Caches are separate per configuration.",
-        footnote=meta["mod_note"])
+        footnote=(meta["mod_note"] +
+                  (f" Baseline is the mean ± std over {nseeds} seeds; the ablation "
+                   "shares seed 0 with it (matched pairs)." if nseeds > 1 else "")))
     script.append(("8. Modification", "Explain what was changed (one scale function), that the default is untouched, and read the delta off the table."))
 
     add_bullets(

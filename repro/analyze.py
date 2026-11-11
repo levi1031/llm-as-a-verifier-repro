@@ -132,7 +132,7 @@ def usage_from_logs(tag):
             "errors": text.count("\n  Error: ")}
 
 
-def analyse(tag, granularity, tasks):
+def analyse(tag, granularity, tasks, seed=SEED):
     path = os.path.join(ROOT_DIR, "cache", f"cache_tb2.1_{tag}.json")
     scores = json.load(open(path))
     all_pass, all_fail, _swing_all = classify(tasks)
@@ -145,7 +145,7 @@ def analyse(tag, granularity, tasks):
     for k in scores:
         per_task[k.split("|")[1]] = per_task.get(k.split("|")[1], 0) + 1
     candidates = sorted(per_task)
-    all_rings = ring_of(candidates, tasks)
+    all_rings = ring_of(candidates, tasks, seed=seed)
     scored_tasks, incomplete = [], {}
     for t in candidates:
         ring = all_rings[t]
@@ -176,7 +176,7 @@ def analyse(tag, granularity, tasks):
     print(f"  {tag}: {len(scored_tasks)} completely scored tasks "
           f"({len(scores)} cached entries)")
     sub = {t: tasks[t] for t in scored_tasks}
-    rings = ring_of(scored_tasks, sub)
+    rings = ring_of(scored_tasks, sub, seed=seed)
     selected, pairs_used = tournament(scores, sub, rings)
 
     n = len(scored_tasks)
@@ -215,6 +215,7 @@ def analyse(tag, granularity, tasks):
     return {
         "tag": tag,
         "granularity": granularity,
+        "seed": seed,
         "tasks": n,
         "pass1": pass1,
         "verifier": verifier,

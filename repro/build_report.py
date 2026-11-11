@@ -127,6 +127,8 @@ def main():
     runs = json.load(open(args.json))
     ov_path = os.path.join(ROOT, "results", "ablation_overlap.json")
     ov = json.load(open(ov_path)) if os.path.exists(ov_path) else {}
+    seed_path = os.path.join(ROOT, "results", "seed_stats.json")
+    seeds = json.load(open(seed_path)) if os.path.exists(seed_path) else {}
     meta = json.load(open(args.meta))
     base, mod = runs[0], runs[1]
     figs = {}
@@ -136,18 +138,53 @@ def main():
         data = b64(os.path.join(ROOT, "report", "figs", name))
         figs[key] = f'<img class="fig" src="data:image/png;base64,{data}">' if data else ""
 
-    def row(r):
+    def row(r, label=None, stats=None):
         pair = (100.0 * r["pairwise_agree"] / r["pairwise_total"]
                 if r["pairwise_total"] else float("nan"))
-        return (f"<tr><td>{r['tag']}</td><td class='num'>g{r['granularity']}</td>"
+        name = label or r["tag"]
+        if stats:                       # mean +- std over several seeds
+            v, p, a = (stats["verifier %"], stats["pairwise_acc"],
+                       stats["trial_auc"])
+            verifier = f"{v['mean']:.1f}% ± {v['std']:.1f}"
+            pcell = f"{p['mean']:.1f}% ± {p['std']:.1f}"
+            acell = f"{a['mean']:.3f} ± {a['std']:.3f}"
+            n_seeds = len(v["values"])
+            name = f"{name} <span class='small'>({n_seeds} seeds)</span>"
+        else:
+            verifier = f"{pct(r, 'verifier'):.1f}%"
+            pcell = f"{pair:.1f}%"
+            acell = f"{r['trial_auc']:.3f}"
+        return (f"<tr><td>{name}</td><td class='num'>g{r['granularity']}</td>"
                 f"<td class='num'>{r['tasks']}</td>"
                 f"<td class='num'>{pct(r, 'pass1'):.1f}%</td>"
-                f"<td class='num'><b>{pct(r, 'verifier'):.1f}%</b></td>"
+                f"<td class='num'><b>{verifier}</b></td>"
                 f"<td class='num'>{pct(r, 'oracle'):.1f}%</td>"
-                f"<td class='num'>{pair:.1f}%</td>"
-                f"<td class='num'>{r['trial_auc']:.3f}</td></tr>")
+                f"<td class='num'>{pcell}</td>"
+                f"<td class='num'>{acell}</td></tr>")
 
-    rows = "\n".join(row(r) for r in runs)
+    rows = row(base,
+               label="baseline g=20",
+               stats=seeds if seeds.get("n_seeds", 0) > 1 else None) \
+        + "\n" + row(mod, label="ablation g=5 (shared seed 0)")
+    nseeds = seeds.get("n_seeds", 1)
+    if nseeds > 1:
+        seed_phrase = f"{nseeds} seeds"
+        seed_sentence = (f"The baseline is reported as the mean ± standard deviation over "
+                         f"{nseeds} seeds; the ablation runs on seed 0 only, by design, and "
+                         "shares that seed's comparisons with the baseline (matched pairs).")
+    else:
+        seed_phrase = "one seed"
+        seed_sentence = ("The baseline rests on a single seed, so no seed-to-seed standard "
+                         "deviation can be reported.")
+    if seeds.get("n_seeds", 0) > 1:
+        seed_note = (f"The baseline row is the mean ± standard deviation over "
+                     f"{seeds['n_seeds']} seeds (each seed re-samples the tournament ring "
+                     "and the verifier, and writes its own score cache). The ablation "
+                     "shares seed 0 with the baseline, so its row is a single draw by "
+                     "design and the two configurations score the same 282 of 288 "
+                     "comparisons — seed noise cancels in that paired difference. ")
+    else:
+        seed_note = ""
     per_task = per_task_table(base, mod)
     if ov:
         overlap_para = (
@@ -202,7 +239,7 @@ the paper's best-of-3 verifier-selection result on a 12-task subset of the
 selection beats the agent's Pass@1 on the subset
 ({pct(base, 'pass1'):.1f}% → <b>{pct(base, 'verifier'):.1f}%</b>), so the
 <i>direction</i> of the claim reproduces; the paper's 86.5%±1.1% magnitude is not
-comparable, because the verifier model differs, I ran a single seed and a subset. The most
+comparable, because the verifier model differs, I ran {seed_phrase} and a subset. The most
 interesting finding is a negative one: on hosted DeepSeek the logprob distribution at the
 score token is <b>one-hot</b> (97% of scores sit within 1e-3 scale points of a single
 letter), so the paper's "expectation over the full score distribution" is inert and the
@@ -215,7 +252,7 @@ no detectable difference at this sample size, which is what the one-hot measurem
   <div><div class="n">{PAPER['pass1']}% / {PAPER['oracle']}%</div>
        <div class="l">paper Pass@1 / oracle<br>reproduced exactly (all 89 tasks)</div></div>
   <div><div class="n">{pct(base, 'pass1'):.1f}% → {pct(base, 'verifier'):.1f}%</div>
-       <div class="l">Pass@1 → verifier, best-of-3<br>{base['tasks']} swing tasks, 1 seed</div></div>
+       <div class="l">Pass@1 → verifier, best-of-3<br>{base['tasks']} swing tasks, {seed_phrase}</div></div>
   <div><div class="n">{100*base['degeneracy']['share_within_1e-3']:.0f}% one-hot</div>
        <div class="l">scores within 1e-3 of a single letter<br>median deviation 7.4e-7</div></div>
   <div><div class="n">{pct(mod, 'verifier') - pct(base, 'verifier'):+.1f} pts</div>
@@ -270,7 +307,7 @@ a second free check of the data, §4).
 its test-time-scaling table, and DeepSeek V4 Flash for the self-verification row. I use
 <code>{meta['model']}</code>. Results are therefore <i>not directly comparable</i> to the paper;
 tasks, metric and evaluation code are the authors'.</li>
-<li><b>Scope.</b> {base['tasks']} of the 24 "swing" tasks, one seed (§3).</li>
+<li><b>Scope.</b> {base['tasks']} of the 24 "swing" tasks, {seed_phrase} (§3).</li>
 <li><b>Logprob availability.</b> The primary backend returns token logprobs, so the paper's
 expectation path runs; §5 shows that path is degenerate here, and a second backend that returns
 <i>no</i> logprobs reproduces the same scores through the text fallback.</li>
@@ -290,8 +327,8 @@ and the repository's own best-of-5 run needs {meta['n_swing'] * 50} more.
 I scoped to the <b>first {base['tasks']} swing tasks in sorted order</b> — a mechanical rule, not
 a difficulty-based choice — because it kept a run inside both the API budget and a two-day
 deadline while leaving enough tasks for the claim to be visible. Two honest caveats:
-(i) task-level accuracy moves in steps of {100 / base['tasks']:.1f} points, and (ii) with one seed
-I cannot report the paper's ± std over seeds. The report therefore also gives
+(i) task-level accuracy moves in steps of {100 / base['tasks']:.1f} points, and (ii) the seed
+count is bounded by budget, not by the pipeline (§4). The report therefore also gives
 <b>comparison-level</b> and <b>trial-level</b> statistics ({base['pairwise_total']} disagreeing
 comparisons, {base['n_success_trials'] + base['n_fail_trials']} scored trials), which have more
 samples than the task count.
@@ -328,7 +365,7 @@ disk"), which is otherwise an invisible convention.
 <th class="num">Pass@1</th><th class="num">verifier</th><th class="num">oracle</th>
 <th class="num">pairwise acc.</th><th class="num">trial AUC</th></tr>
 {rows}
-<tr><td colspan="8" class="small">Pairwise accuracy: share of comparisons where the two trials
+<tr><td colspan="8" class="small">{seed_note}Pairwise accuracy: share of comparisons where the two trials
 disagree and the verifier prefers the successful one. Trial AUC: ranking of the verifier reward
 against the binary reward over individual trials. The first row is the reproduction of the paper's
 configuration; the second is the modification.</td></tr>
@@ -355,7 +392,11 @@ of the verifier reward against the binary reward is {base['trial_auc']:.3f}
 ({base['n_success_trials']} successful vs {base['n_fail_trials']} failed trials).
 That is the paper's qualitative claim — a frozen verifier re-ranks rollouts better than chance —
 and it holds on this data. The gap to 86.5% is not evidence against the paper: the model is
-different, the subset is small, and the ± std across seeds cannot be estimated from one seed.
+different, and the subset is small: selection is 11/12 in all {nseeds} seeds
+({seeds['verifier %']['mean']:.1f}% ± {seeds['verifier %']['std']:.1f}), while the finer metrics move
+— pairwise preference {seeds['pairwise_acc']['mean']:.1f}% ± {seeds['pairwise_acc']['std']:.1f},
+trial AUC {seeds['trial_auc']['mean']:.3f} ± {seeds['trial_auc']['std']:.3f} — which is the
+resolution a 12-task count cannot show.
 </p>
 
 <p>
@@ -417,7 +458,7 @@ are the g-point grid. Both pile up on the grid, which is why coarsening the scal
 the same ordering.</div>
 {overlap_para}
 <p>
-<b>What this null result can and cannot mean.</b> At n = 12 with one seed, a one-task difference
+<b>What this null result can and cannot mean.</b> At n = 12, a one-task difference
 is undetectable (exact binomial p = {p_1task:.2f}); a two-task difference would have shown up
 (p = {p_2task:.3f}). The observed difference is zero tasks, with identical pairwise accuracy and
 AUC within 0.01. The correct claim is therefore "no difference larger than about two tasks",

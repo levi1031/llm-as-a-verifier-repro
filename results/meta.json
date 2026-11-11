@@ -7,10 +7,10 @@
   "backend": "api.deepseek.com, model `deepseek-flash` (DeepSeek V4.1 Flash), OpenAI-compatible, token logprobs available",
   "model": "deepseek-flash (V4.1 Flash)",
   "n_swing": 24,
-  "n_calls": "423",
-  "cost_cny": "4",
-  "wallclock": "≈30 min for both configurations once the API budget was fixed (423 calls, 10 concurrent, ≈99% prefix-cache hits)",
+  "n_calls": "1143",
+  "cost_cny": "11",
+  "wallclock": "≈80 min of verifier time in total: 30 min for the two configurations on seed 0, ≈50 min for seeds 1 and 2",
   "deviation_note": "Verifier model, seed count and task scope differ from the paper; tasks, metric and evaluation code are the authors' own.",
   "mod_note": "Each configuration writes its own score cache; no verifier score is shared between baseline and ablation.",
-  "mod_finding": "Coarsening the scale from 20 letters to 5 left task-level selection unchanged: both configurations select a successful rollout on 11 of 12 tasks, pairwise preference accuracy is 90.3% versus 90.6%, and trial-level AUC is 0.861 versus 0.852. The two configurations picked a different trial on exactly one task (kv-store-grpc), where both picks were successful. With a one-hot score distribution the label alphabet changes how finely a preference is written down, not its sign, so a null result is what the mechanism predicts; at n=12 with one seed, differences below about two tasks are unresolvable anyway, and the honest reading is 'no detectable effect' rather than 'granularity does not matter'."
+  "mod_finding": "Coarsening the scale from 20 letters to 5 leaves task-level selection unchanged, and this now holds under repetition: the baseline selects a successful rollout on 11 of 12 tasks in all three seeds (91.7% ± 0.0), and the ablation repeats that 11 of 12 on the shared seed. The finer statistics show the seed noise the task counting is too coarse to resolve — pairwise preference accuracy is 90.3 / 88.6 / 93.9 across seeds (90.9 ± 2.7) and trial AUC is 0.861 / 0.843 / 0.818 (0.841 ± 0.022) — while the g5 run, on the same 282 of 288 comparisons, lands within that band (90.6% pairwise, 0.852 AUC). At vote level the ablation does move things: 21/186 informative comparisons flip (11.3%) against 29/96 uninformative ones (30.2%), and the margin widens from 0.317 to 0.369. Because a task decision aggregates 30 votes, those flips cancel. The honest claim is 'no difference larger than about two tasks', which is what a one-hot score distribution predicts."
 }

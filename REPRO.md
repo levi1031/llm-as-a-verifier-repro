@@ -63,8 +63,15 @@ LLM_VERIFIER_GRANULARITY=5 python repro/run_bo3.py --limit 12 --tag sub12_g5
 # the paper's full-data best-of-3 (all 24 swing tasks, ~720 verifier calls)
 python repro/run_bo3.py
 
-# metrics tables from the score caches
-python repro/analyze.py --tags sub12_g20:20 sub12_g5:5 --json results/sub12.json
+# two more seeds of the reproduction target (stochastic pipeline: each seed
+# re-samples the tournament ring and the verifier, own score cache)
+python repro/run_bo3.py --limit 12 --tag sub12_g20_s1 --seed 1
+python repro/run_bo3.py --limit 12 --tag sub12_g20_s2 --seed 2
+
+# metrics tables from the score caches (no API calls)
+python repro/analyze.py --tags sub12_g20:20 sub12_g5:5 --json results/final.json
+python repro/seed_stats.py            # mean +- std over seeds 0,1,2
+python repro/ablation_overlap.py      # what the ablation changed, vote by vote
 ```
 
 Config pinned by `repro/run_bo3.py` (identical to `scripts/run_tb2.1_bo3.py`):
@@ -81,8 +88,8 @@ Pass@1 (52.9%).
 
 | configuration | Pass@1 | LLM-as-a-Verifier | oracle | pairwise acc. | trial AUC |
 |---|---|---|---|---|---|
-| g=20 baseline | 50.0% | **91.7%** (11/12) | 100% | 90.3% | 0.861 |
-| g=5 ablation | 50.0% | **91.7%** (11/12) | 100% | 90.6% | 0.852 |
+| g=20 baseline, 3 seeds | 50.0% | **mean ± std, see `results/seed_stats.json`** | 100% | — | — |
+| g=5 ablation, seed 0 | 50.0% | **91.7%** (11/12) | 100% | 90.6% | 0.852 |
 | paper, best-of-3 | 79.4% | 86.5% ± 1.1% | 92.1% | — | — |
 
 The non-LLM half of the paper's table reproduces **exactly** on all 89 tasks

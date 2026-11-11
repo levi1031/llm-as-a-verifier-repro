@@ -31,7 +31,7 @@ def load_scores(tag):
 
 
 def fig_headline(runs, out):
-    labels = [f"{r['tag']}\n(g={r['granularity']}, n={r['tasks']})" for r in runs]
+    labels = [f"g={r['granularity']} scale\n(n={r['tasks']} tasks, {"3 seeds" if i == 0 else "seed 0"})" for i, r in enumerate(runs)]
     pass1 = [100 * r["pass1"] / r["tasks"] for r in runs]
     verif = [100 * r["verifier"] / r["tasks"] for r in runs]
     orac = [100 * r["oracle"] / r["tasks"] for r in runs]
@@ -84,7 +84,7 @@ def fig_scores(runs, out):
         ax.hist(vals, bins=30, color="#2f6fb2", alpha=0.85)
         for gv in grid:
             ax.axvline(gv, lw=0.3, color="#b2452f", alpha=0.55)
-        ax.set_title(f"{r['tag']}  (g={g}, n={len(vals)} scores)", fontsize=8)
+        ax.set_title(f"g={g} scale  ({len(vals)} scores)", fontsize=8)
         ax.set_xlabel("verifier reward  (1 = best letter)", fontsize=7.5)
         ax.tick_params(labelsize=7)
         ax.spines[["top", "right"]].set_visible(False)
@@ -107,7 +107,7 @@ def fig_degeneracy(runs, out):
         precise = [v for v in vals if v != 0.5]
         dev = [abs(v * (g - 1) - round(v * (g - 1))) for v in precise]
         ax.hist(dev, bins=40, histtype="step", linewidth=1.4,
-                label=f"{r['tag']} (g={g}, {len(precise)}/{len(vals)} parsed)",
+                label=f"g={g} scale ({len(precise)}/{len(vals)} parsed)",
                 color=color)
     ax.set_yscale("log")
     ax.set_xlim(-0.01, 0.52)
