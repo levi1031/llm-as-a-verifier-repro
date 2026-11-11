@@ -8,6 +8,7 @@ script, from the same numbers the report uses.
 import argparse
 import json
 import os
+import sys
 
 from pptx import Presentation
 from pptx.dml.color import RGBColor
@@ -117,12 +118,94 @@ def add_table(prs, title, header, rows, notes="", footnote=""):
         s.notes_slide.notes_text_frame.text = notes
 
 
+
+def _script_html(md_lines, meta):
+    """Tiny markdown -> HTML for the printable script (headings, bold, lists)."""
+    import html as _html
+    out, in_list = [], False
+    for line in md_lines:
+        if line.strip() == "---":
+            if in_list:
+                out.append("</ul>"); in_list = False
+            out.append('<hr>')
+            continue
+        if line.startswith("## "):
+            if in_list:
+                out.append("</ul>"); in_list = False
+            out.append(f"<h2>{_html.escape(line[3:])}</h2>")
+            continue
+        if line.startswith("% "):
+            out.append(f"<h1>{_html.escape(line[2:])}</h1>")
+            continue
+        if line.startswith("```"):
+            continue
+        if line.startswith("`") and "·" in line:
+            if in_list:
+                out.append("</ul>"); in_list = False
+            out.append(f'<p class="timing">{_html.escape(line.replace("`", ""))}</p>')
+            continue
+        if line.startswith("> "):
+            if in_list:
+                out.append("</ul>"); in_list = False
+            cue = _html.escape(line[2:])
+            while "**" in cue:
+                cue = cue.replace("**", "<b>", 1).replace("**", "</b>", 1)
+            out.append(f'<p class="cue">{cue}</p>')
+            continue
+        if not line.strip():
+            if in_list:
+                out.append("</ul>"); in_list = False
+            continue
+        text = _html.escape(line)
+        while "**" in text:
+            text = text.replace("**", "<b>", 1).replace("**", "</b>", 1)
+        if line.startswith("A: "):
+            out.append(f"<p>{text}</p>")
+        else:
+            out.append(f"<p>{text}</p>")
+    if in_list:
+        out.append("</ul>")
+    css = """
+    @page { size: A4; margin: 18mm 18mm; }
+    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+           font-size: 11pt; line-height: 1.5; color: #1f2933; }
+    h1 { font-size: 17pt; margin: 0 0 2mm; }
+    h2 { font-size: 13pt; color: #1a4f86; margin: 7mm 0 1.5mm; }
+    p { margin: 0 0 2.4mm; }
+    .timing { font-family: Menlo, monospace; font-size: 8.6pt; color: #5b6772;
+              margin-bottom: 1.6mm; }
+    .cue { font-size: 9.4pt; color: #b2452f; border-left: 2pt solid #e8c4ba;
+           padding-left: 2mm; margin-left: 0; }
+    hr { border: 0; border-top: 0.4pt solid #d3dae1; margin: 5mm 0; }
+    """
+    return ("<!doctype html><html><head><meta charset='utf-8'>"
+            f"<title>Speaker script — {meta['student']}</title>"
+            f"<style>{css}</style></head><body>" + "\n".join(out) + "</body></html>")
+
+
+def _print_pdf(html_path, pdf_path):
+    import subprocess
+    chrome = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    if not os.path.exists(chrome):
+        return
+    home = os.path.join(ROOT, ".chrome-home")
+    os.makedirs(home, exist_ok=True)
+    subprocess.run([chrome, "--headless=new", "--disable-gpu", "--no-sandbox",
+                    "--disable-crash-reporter", "--disable-breakpad",
+                    f"--user-data-dir={os.path.join(home, 'profile')}",
+                    "--no-pdf-header-footer", f"--print-to-pdf={pdf_path}",
+                    html_path], check=False, env={**os.environ, "HOME": home},
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--json", required=True)
     ap.add_argument("--meta", required=True)
     ap.add_argument("--out", default=os.path.join(ROOT, "report",
                                                   "presentation.pptx"))
+    sys.path.insert(0, ROOT)
+    from repro.presentation_script import QA, SCRIPT  # noqa: E402
     args = ap.parse_args()
 
     runs = json.load(open(args.json))
@@ -323,13 +406,67 @@ def main():
     script.append(("12. Lessons", "Close on transferable practice: hash-pinned data, on-disk score cache, swing-task scoping, and distrust of 'fine-grained' claims until you measure the distribution."))
 
     os.makedirs(os.path.dirname(args.out), exist_ok=True)
+
+    # The speaker notes become the full script, so Presenters View while
+    # recording shows exactly what to say, with its clock and the Chinese cue.
+    def flatten(t):
+        return " ".join(t.split())
+
+    for sl, (num, title, clock, secs, en, cue) in zip(prs.slides, SCRIPT):
+        sl.notes_slide.notes_text_frame.text = (
+            f"[{clock} · {secs}s · slide {num}] {title}\n\n"
+            f"{flatten(en)}\n\n"
+            f"中文提示：{cue}")
     prs.save(args.out)
-    md = ["# Presentation script (≈15 min)\n"]
-    for title, text in script:
-        md.append(f"## {title}\n\n{text}\n")
+
+    # ---- markdown + printable PDF of the same script ----
+    total_words = sum(len(flatten(en).split()) for *_, en, _c in SCRIPT)
+    total_secs = sum(secs for *_x, secs, _en, _c in SCRIPT)
+    md = ["% Reproducing LLM-as-a-Verifier — speaker script",
+          "",
+          f"{meta['student']} · {meta['student_id']} · FTEC5660",
+          "",
+          f"**Timing:** {len(SCRIPT)} slides, {total_secs // 60}:{total_secs % 60:02d} "
+          f"of speech, {total_words} words "
+          f"(≈{total_words / max(1, total_secs / 60):.0f} words per minute — comfortable).",
+          "",
+          "The same text is in each slide's **speaker notes**, so you can record "
+          "from Presenters View. The 中文提示 line is a one-sentence reminder of "
+          "what the slide is for; do not read it out.",
+          ""]
+    for num, title, clock, secs, en, cue in SCRIPT:
+        words = len(flatten(en).split())
+        md += [f"---", "",
+               f"## Slide {num} — {title}",
+               "",
+               f"`{clock}` · {secs}s · {words} words",
+               "",
+               flatten(en),
+               "",
+               f"> **中文提示**：{cue}",
+               ""]
+    md += ["---", "", "## Q&A 预案", ""]
+    for q, a in QA:
+        md += [f"**Q: {q}**", "", f"A: {flatten(a)}", ""]
+    md += ["---", "",
+           "Recorded demo you can add after slide 10 (no API cost):",
+           "",
+           "```bash",
+           "cd ~/Desktop/repro/_repos/llm-as-a-verifier_llm-as-a-verifier",
+           "./.venv/bin/python repro/analyze.py --tags sub12_g20:20 sub12_g5:5",
+           "```",
+           "",
+           "It replays the tournament from the checked-in caches and prints the "
+           "table, in about two seconds.", ""]
     md_path = os.path.join(os.path.dirname(args.out), "PRESENTATION_SCRIPT.md")
     open(md_path, "w").write("\n".join(md))
-    print(f"deck: {args.out}\nscript: {md_path}")
+
+    html = _script_html(md, meta)
+    html_path = md_path.replace(".md", ".html")
+    open(html_path, "w").write(html)
+    pdf_path = md_path.replace(".md", ".pdf")
+    _print_pdf(html_path, pdf_path)
+    print(f"deck: {args.out}\nscript: {md_path}\nscript pdf: {pdf_path}")
 
 
 if __name__ == "__main__":
