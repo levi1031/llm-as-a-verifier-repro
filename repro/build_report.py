@@ -68,6 +68,13 @@ def b64(path):
 
 
 
+
+def binom_tail(k, n, p=0.5):
+    """Exact P(X >= k) for Binomial(n, p) — used for the sign tests."""
+    from math import comb
+    return sum(comb(n, i) * p ** i * (1 - p) ** (n - i) for i in range(k, n + 1))
+
+
 def per_task_table(base, mod):
     """Side-by-side per-task selections: rewards, chosen trial, correctness."""
     rows = []
@@ -140,6 +147,16 @@ def main():
 
     rows = "\n".join(row(r) for r in runs)
     per_task = per_task_table(base, mod)
+    p_task = binom_tail(base["verifier"], base["tasks"])
+    p_1task = binom_tail(7, 12)
+    p_2task = binom_tail(10, 12)
+    pair_ok, pair_n = base["pairwise_agree"], base["pairwise_total"]
+    p_pair = binom_tail(pair_ok, pair_n)
+    n_ok, n_bad = base["n_success_trials"], base["n_fail_trials"]
+    auc = base["trial_auc"]
+    z = (auc * n_ok * n_bad - n_ok * n_bad / 2) / ((n_ok * n_bad * (n_ok + n_bad + 1) / 12) ** 0.5)
+    from math import erfc
+    p_auc = erfc(abs(z) / 2 ** 0.5)
     usage = usage_table(runs)
     html = f"""<!doctype html><html><head><meta charset="utf-8">
 <title>Reproducibility report — LLM-as-a-Verifier</title><style>{CSS}</style>
@@ -320,6 +337,18 @@ and it holds on this data. The gap to 86.5% is not evidence against the paper: t
 different, the subset is small, and the ± std across seeds cannot be estimated from one seed.
 </p>
 
+<p>
+<b>How much can a 12-task sample actually say?</b> Exact sign tests against the Pass@1 baseline
+(p = 0.5 per task) answer this precisely. At task level, 11 of 12 selections being correct gives
+p = {p_task:.4f}; the comparison-level count ({pair_ok}/{pair_n} disagreeing comparisons preferring
+the successful rollout) gives p = {p_pair:.1e}; and the trial-level AUC of
+{auc:.3f} over {n_ok} successful vs {n_bad} failed trials corresponds to z = {z:.2f},
+p = {p_auc:.1e}. So the subset is more than enough to establish <i>direction and discrimination</i>,
+and far too small for a magnitude claim: at n = 12 a one-task difference is invisible
+(p = {p_1task:.2f}), while a two-task difference would have been detected (p = {p_2task:.3f}).
+That bound is exactly what §6.3 leans on.
+</p>
+
 <h2>6. The modification, and the finding that shaped it</h2>
 <h3>6.1 What I changed</h3>
 <p>
@@ -365,6 +394,14 @@ configuration, which is why every configuration here is single-backend.
 <div class="cap"><b>Figure 3.</b> Distribution of verifier rewards per configuration; red ticks
 are the g-point grid. Both pile up on the grid, which is why coarsening the scale mostly relabels
 the same ordering.</div>
+<p>
+<b>What this null result can and cannot mean.</b> At n = 12 with one seed, a one-task difference
+is undetectable (exact binomial p = {p_1task:.2f}); a two-task difference would have shown up
+(p = {p_2task:.3f}). The observed difference is zero tasks, with identical pairwise accuracy and
+AUC within 0.01. The correct claim is therefore "no difference larger than about two tasks",
+which — given that the score distribution is one-hot, so the ablation only rewrites the same
+preference in a coarser alphabet — is the outcome the mechanism predicts.
+</p>
 <p>
 <b>Cost side.</b> The g5 answer block is shorter (five valid tokens instead of twenty, a shorter
 scale description), but the prompt is dominated by the two trajectories — tens of thousands of
