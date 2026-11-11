@@ -120,12 +120,13 @@ repro/               reproduction harness, data fetcher, analysis, report
                      and deck builders (added)
 llm_verifier/        upstream package; fine_grained_reward.py carries the mod
 scripts/  criteria/  upstream
-report/              REPORT.pdf, presentation.pptx, presentation script, figs
+report/              REPORT.pdf, presentation.pptx (brief speaker notes), figs
 results/             final.json (all metrics), meta.json, result tables
 cache/               the two score caches behind every number (checked in)
 data/  logs/         fetched on demand / runtime, git-ignored
 ```
 
 See `report/REPORT.pdf` for the write-up (targets, numbers, debug diary,
-conclusions) and `report/presentation.pptx` for the 15-minute
-talk.
+conclusions) and `report/presentation.pptx` for the 15-minute talk. The
+slide deck ships with short reminder notes only: the word-for-word speaker
+script is deliberately kept out of this repository and lives locally.

@@ -204,10 +204,24 @@ def main():
     ap.add_argument("--meta", required=True)
     ap.add_argument("--out", default=os.path.join(ROOT, "report",
                                                   "presentation.pptx"))
-    sys.path.insert(0, ROOT)
-    from repro.presentation_script import QA, SCRIPT  # noqa: E402
+    ap.add_argument("--brief", action="store_true",
+                    help="short reminder notes only, no speaker script "
+                         "(used for the deck committed to the public repo)")
+
     args = ap.parse_args()
 
+    # The full speaker script is deliberately *not* part of the repository:
+    # it lives only in the local, git-ignored repro/presentation_script.py.
+    # Without that file (or with --brief) the deck keeps the short reminder
+    # notes and no script is generated.
+    SCRIPT = QA = None
+    if not args.brief:
+        sys.path.insert(0, ROOT)
+        try:
+            from repro.presentation_script import QA as _QA, SCRIPT as _S
+            SCRIPT, QA = _S, _QA
+        except ImportError:
+            SCRIPT = QA = None
     runs = json.load(open(args.json))
     seed_path = os.path.join(ROOT, "results", "seed_stats.json")
     seeds = json.load(open(seed_path)) if os.path.exists(seed_path) else {}
@@ -412,12 +426,16 @@ def main():
     def flatten(t):
         return " ".join(t.split())
 
-    for sl, (num, title, clock, secs, en, cue) in zip(prs.slides, SCRIPT):
-        sl.notes_slide.notes_text_frame.text = (
-            f"[{clock} · {secs}s · slide {num}] {title}\n\n"
-            f"{flatten(en)}\n\n"
-            f"中文提示：{cue}")
+    if SCRIPT:
+        for sl, (num, title, clock, secs, en, cue) in zip(prs.slides, SCRIPT):
+            sl.notes_slide.notes_text_frame.text = (
+                f"[{clock} · {secs}s · slide {num}] {title}\n\n"
+                f"{flatten(en)}\n\n"
+                f"中文提示：{cue}")
     prs.save(args.out)
+    if not SCRIPT:
+        print(f"deck: {args.out} (brief notes; no speaker script written)")
+        return
 
     # ---- markdown + printable PDF of the same script ----
     total_words = sum(len(flatten(en).split()) for *_, en, _c in SCRIPT)

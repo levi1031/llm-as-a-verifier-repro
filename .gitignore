@@ -33,3 +33,8 @@ data/
 
 # Chrome profile used only to print the report PDF
 .chrome-home/
+
+# The speaker script is kept out of the public repo (local only)
+report/PRESENTATION_SCRIPT.*
+report/presentation_with_notes.pptx
+repro/presentation_script.py
