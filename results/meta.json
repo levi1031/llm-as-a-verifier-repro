@@ -1,0 +1,16 @@
+{
+  "student": "李尚益 (Li Shangyi)",
+  "student_id": "1155270838",
+  "date": "11 November 2026",
+  "repo_url": "https://github.com/<your-account>/llm-as-a-verifier-repro",
+  "compute": "Apple M-series laptop (arm64), no GPU, no Docker; two days of wall clock",
+  "backend": "api.deepseek.com, model `deepseek-flash` (DeepSeek V4.1 Flash), OpenAI-compatible, token logprobs available",
+  "model": "deepseek-flash (V4.1 Flash)",
+  "n_swing": 24,
+  "n_calls": "423",
+  "cost_cny": "4",
+  "wallclock": "≈30 min for both configurations once the API budget was fixed (423 calls, 10 concurrent, ≈99% prefix-cache hits)",
+  "deviation_note": "Verifier model, seed count and task scope differ from the paper; tasks, metric and evaluation code are the authors' own.",
+  "mod_note": "Each configuration writes its own score cache; no verifier score is shared between baseline and ablation.",
+  "mod_finding": "Coarsening the scale from 20 letters to 5 left task-level selection unchanged: both configurations select a successful rollout on 11 of 12 tasks, pairwise preference accuracy is 90.3% versus 90.6%, and trial-level AUC is 0.861 versus 0.852. The two configurations picked a different trial on exactly one task (kv-store-grpc), where both picks were successful. With a one-hot score distribution the label alphabet changes how finely a preference is written down, not its sign, so a null result is what the mechanism predicts; at n=12 with one seed, differences below about two tasks are unresolvable anyway, and the honest reading is 'no detectable effect' rather than 'granularity does not matter'."
+}

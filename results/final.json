@@ -1,0 +1,332 @@
+[
+  {
+    "tag": "sub12_g20",
+    "granularity": 20,
+    "tasks": 12,
+    "pass1": 6.0,
+    "verifier": 11,
+    "oracle": 12,
+    "selected": {
+      "cancel-async-tasks": 1,
+      "dna-assembly": 0,
+      "extract-elf": 1,
+      "extract-moves-from-video": 0,
+      "gcode-to-text": 0,
+      "gpt2-codegolf": 1,
+      "install-windows-3.11": 2,
+      "kv-store-grpc": 1,
+      "mailman": 2,
+      "merge-diff-arc-agi-task": 0,
+      "model-extraction-relu-logits": 0,
+      "mteb-leaderboard": 0
+    },
+    "pairwise_agree": 28,
+    "pairwise_total": 31,
+    "trial_auc": 0.8611111111111112,
+    "n_success_trials": 18,
+    "n_fail_trials": 18,
+    "mean_reward_success": 0.8655726937684549,
+    "mean_reward_fail": 0.4628317650595477,
+    "degeneracy": {
+      "n": 576,
+      "median_dev": 7.682629412641973e-07,
+      "share_within_1e-3": 0.9722222222222222,
+      "share_within_0.01": 0.9895833333333334
+    },
+    "cache_entries": 288,
+    "per_task": [
+      {
+        "task": "cancel-async-tasks",
+        "rewards": [
+          1,
+          1,
+          0
+        ],
+        "selected": 1,
+        "ok": true
+      },
+      {
+        "task": "dna-assembly",
+        "rewards": [
+          1,
+          1,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "extract-elf",
+        "rewards": [
+          0,
+          0,
+          1
+        ],
+        "selected": 1,
+        "ok": false
+      },
+      {
+        "task": "extract-moves-from-video",
+        "rewards": [
+          1,
+          0,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "gcode-to-text",
+        "rewards": [
+          1,
+          0,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "gpt2-codegolf",
+        "rewards": [
+          0,
+          1,
+          0
+        ],
+        "selected": 1,
+        "ok": true
+      },
+      {
+        "task": "install-windows-3.11",
+        "rewards": [
+          0,
+          1,
+          1
+        ],
+        "selected": 2,
+        "ok": true
+      },
+      {
+        "task": "kv-store-grpc",
+        "rewards": [
+          0,
+          1,
+          1
+        ],
+        "selected": 1,
+        "ok": true
+      },
+      {
+        "task": "mailman",
+        "rewards": [
+          0,
+          0,
+          1
+        ],
+        "selected": 2,
+        "ok": true
+      },
+      {
+        "task": "merge-diff-arc-agi-task",
+        "rewards": [
+          1,
+          0,
+          1
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "model-extraction-relu-logits",
+        "rewards": [
+          1,
+          0,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "mteb-leaderboard",
+        "rewards": [
+          1,
+          0,
+          1
+        ],
+        "selected": 0,
+        "ok": true
+      }
+    ],
+    "usage": {
+      "calls": 174,
+      "input_tokens": 18760556,
+      "cached_input_tokens": 18444792,
+      "output_tokens": 1142927,
+      "errors": 0
+    }
+  },
+  {
+    "tag": "sub12_g5",
+    "granularity": 5,
+    "tasks": 12,
+    "pass1": 6.0,
+    "verifier": 11,
+    "oracle": 12,
+    "selected": {
+      "cancel-async-tasks": 1,
+      "dna-assembly": 0,
+      "extract-elf": 1,
+      "extract-moves-from-video": 0,
+      "gcode-to-text": 0,
+      "gpt2-codegolf": 1,
+      "install-windows-3.11": 2,
+      "kv-store-grpc": 2,
+      "mailman": 2,
+      "merge-diff-arc-agi-task": 0,
+      "model-extraction-relu-logits": 0,
+      "mteb-leaderboard": 0
+    },
+    "pairwise_agree": 29,
+    "pairwise_total": 32,
+    "trial_auc": 0.8518518518518519,
+    "n_success_trials": 18,
+    "n_fail_trials": 18,
+    "mean_reward_success": 0.8429854800059406,
+    "mean_reward_fail": 0.4246397550314272,
+    "degeneracy": {
+      "n": 576,
+      "median_dev": 3.154421930329221e-07,
+      "share_within_1e-3": 0.9947916666666666,
+      "share_within_0.01": 0.9982638888888888
+    },
+    "cache_entries": 288,
+    "per_task": [
+      {
+        "task": "cancel-async-tasks",
+        "rewards": [
+          1,
+          1,
+          0
+        ],
+        "selected": 1,
+        "ok": true
+      },
+      {
+        "task": "dna-assembly",
+        "rewards": [
+          1,
+          1,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "extract-elf",
+        "rewards": [
+          0,
+          0,
+          1
+        ],
+        "selected": 1,
+        "ok": false
+      },
+      {
+        "task": "extract-moves-from-video",
+        "rewards": [
+          1,
+          0,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "gcode-to-text",
+        "rewards": [
+          1,
+          0,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "gpt2-codegolf",
+        "rewards": [
+          0,
+          1,
+          0
+        ],
+        "selected": 1,
+        "ok": true
+      },
+      {
+        "task": "install-windows-3.11",
+        "rewards": [
+          0,
+          1,
+          1
+        ],
+        "selected": 2,
+        "ok": true
+      },
+      {
+        "task": "kv-store-grpc",
+        "rewards": [
+          0,
+          1,
+          1
+        ],
+        "selected": 2,
+        "ok": true
+      },
+      {
+        "task": "mailman",
+        "rewards": [
+          0,
+          0,
+          1
+        ],
+        "selected": 2,
+        "ok": true
+      },
+      {
+        "task": "merge-diff-arc-agi-task",
+        "rewards": [
+          1,
+          0,
+          1
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "model-extraction-relu-logits",
+        "rewards": [
+          1,
+          0,
+          0
+        ],
+        "selected": 0,
+        "ok": true
+      },
+      {
+        "task": "mteb-leaderboard",
+        "rewards": [
+          1,
+          0,
+          1
+        ],
+        "selected": 0,
+        "ok": true
+      }
+    ],
+    "usage": {
+      "calls": 249,
+      "input_tokens": 25128599,
+      "cached_input_tokens": 25041532,
+      "output_tokens": 2019360,
+      "errors": 0
+    }
+  }
+]
