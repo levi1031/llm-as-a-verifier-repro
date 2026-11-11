@@ -199,6 +199,18 @@ def create_openai_client(base_url=None, api_key=None):
     if "api.deepseek.com" in base_url:
         client._llm_verifier_model = DEEPSEEK_MODEL
         client._llm_verifier_deepseek = True
+    # [repro-compat] A hosted, DeepSeek-compatible endpoint that is not
+    # api.deepseek.com itself (LLM_VERIFIER_DEEPSEEK_PATH=1) must take the same
+    # call path: the OpenAI-compatible path would try the vLLM/SGLang prefill
+    # trick, which such a server does not implement, and silently score every
+    # comparison 0.5/0.5. LLM_VERIFIER_MODEL overrides the model name and
+    # LLM_VERIFIER_ALLOW_TEXT_SCORES=1 (see call_deepseek) lets scoring fall
+    # back to the reply text when the server returns no token logprobs.
+    if os.environ.get("LLM_VERIFIER_DEEPSEEK_PATH") == "1":
+        client._llm_verifier_model = (os.environ.get("LLM_VERIFIER_MODEL")
+                                     or client._llm_verifier_model
+                                     or DEEPSEEK_MODEL)
+        client._llm_verifier_deepseek = True
     return client
 
 
@@ -620,6 +632,18 @@ def call_deepseek(client, prompt, model=DEFAULT_MODEL, top_logprobs=20,
                 alts = [(pos.token, pos.logprob)]
             position_logprobs.append(alts)
     if not position_logprobs:
+        # [repro-compat] Some hosting providers serve DeepSeek-compatible
+        # completions but strip token logprobs from the response. With
+        # LLM_VERIFIER_ALLOW_TEXT_SCORES=1 the reply text still carries the
+        # <score_A>/<score_B> tags, so extract_score() falls back to reading
+        # the emitted letter — a hard label instead of an expectation over the
+        # distribution. Documented in REPRO.md §5: on api.deepseek.com that
+        # expectation is one-hot anyway (97% of scores sit within 1e-3 scale
+        # points of the sampled letter), so the two paths agree.
+        if (os.environ.get("LLM_VERIFIER_ALLOW_TEXT_SCORES") == "1"
+                and choice.finish_reason != "length"
+                and re.search(r"<score_[AB]>", text or "")):
+            return text, None, None
         # No score distribution to read: either reasoning consumed the whole
         # budget, or the model stopped without emitting an answer.
         if choice.finish_reason == "length":

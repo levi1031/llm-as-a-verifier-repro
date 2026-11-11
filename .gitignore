@@ -30,3 +30,6 @@ logs/
 # Reproduction: 58 MB of upstream data is fetched on demand
 # (see repro/fetch_data.py and repro/data_manifest.json)
 data/
+
+# Chrome profile used only to print the report PDF
+.chrome-home/
