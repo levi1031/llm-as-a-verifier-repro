@@ -1,3 +1,11 @@
+> **Reproduction fork (FTEC5660, 李尚益 / 1155270838).** This repository is a
+> reproducibility study of *LLM-as-a-Verifier* on Terminal-Bench 2.1 (best-of-3),
+> with one isolated modification: the verifier's score-scale granularity, 20 letters
+> (A–T) → 5 letters (A–E).
+> **Start here → [`REPRO.md`](REPRO.md)** (install, 58 MB data fetch, run commands,
+> results) and the write-up [`report/REPORT.pdf`](report/REPORT.pdf).
+> Everything below is the authors' original README, unchanged.
+
 <!-- markdownlint-disable MD001 MD041 -->
 <p align="center">
   <picture>

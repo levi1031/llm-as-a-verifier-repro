@@ -2,7 +2,7 @@
   "student": "李尚益 (Li Shangyi)",
   "student_id": "1155270838",
   "date": "11 November 2026",
-  "repo_url": "https://github.com/<your-account>/llm-as-a-verifier-repro",
+  "repo_url": "https://github.com/levi1031/llm-as-a-verifier-repro",
   "compute": "Apple M-series laptop (arm64), no GPU, no Docker; two days of wall clock",
   "backend": "api.deepseek.com, model `deepseek-flash` (DeepSeek V4.1 Flash), OpenAI-compatible, token logprobs available",
   "model": "deepseek-flash (V4.1 Flash)",
