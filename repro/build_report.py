@@ -227,7 +227,8 @@ def main():
 {meta['date']}<br>
 Paper: <i>LLM-as-a-Verifier: A General-Purpose Verification Framework</i> (arXiv 2607.05391) ·
 Code: <code>github.com/llm-as-a-verifier/llm-as-a-verifier</code> ·
-Fork with all changes: <code>{meta['repo_url']}</code>
+Fork with all changes: <code>{meta['repo_url']}</code><br>
+Recorded presentation ({meta.get('presentation_len', '')}): <code>{meta.get('presentation_url', '(link in the submission)')}</code>
 </div>
 
 <h2>0. One-paragraph summary</h2>

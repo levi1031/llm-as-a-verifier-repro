@@ -6,6 +6,10 @@ Reproducibility work for **item 21** of the course paper list:
 
 **Student:** 李尚益 (Li Shangyi) · **ID:** 1155270838 · FTEC5660 *Agentic AI for Business and FinTech*
 
+**Recorded presentation (7:39):** https://levi1031.github.io/llm-as-a-verifier-repro/
+— served from the `presentation` branch of this repository (the site is a plain
+HTML5 player; the video is not part of `main`, so the code history stays clean).
+
 ---
 
 ## 1. What is reproduced
