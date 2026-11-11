@@ -69,25 +69,80 @@ class MissingAPIKeyError(RuntimeError):
 
 GRANULARITY = 20
 
-SCALE = {
-    "scale_description": (
-        "Rate how likely the agent correctly solved the task on a "
-        "20-point scale using letters A through T:\n"
-        "  A = clearly and completely succeeded with verified output (best)\n"
-        "  B-D = succeeded with only minor issues\n"
-        "  E-G = above average, mostly correct with some issues\n"
-        "  H-J = uncertain, leans toward success\n"
-        "  K-M = uncertain, leans toward failure\n"
-        "  N-P = below average, significant issues remain\n"
-        "  Q-S = failed with some partial progress\n"
-        "  T = clearly and completely failed (worst)"
-    ),
-    "score_format": "LETTER_A_TO_T",
-    "valid_tokens": {
-        **{chr(65 + i): float(GRANULARITY - i) for i in range(GRANULARITY)},
-        **{chr(97 + i): float(GRANULARITY - i) for i in range(GRANULARITY)},
-    },
-}
+# [repro-modification] The score scale is configurable at import time via
+# LLM_VERIFIER_GRANULARITY, so the paper's "fine-grained scoring granularity"
+# component can be ablated without touching the rest of the pipeline. The
+# default (g=20, A-T) is bit-for-bit the upstream scale, including the band
+# description, so an unset variable reproduces the paper's configuration.
+# See repro/README.md for the experiment that uses this.
+_G20_DESCRIPTION = (
+    "Rate how likely the agent correctly solved the task on a "
+    "20-point scale using letters A through T:\n"
+    "  A = clearly and completely succeeded with verified output (best)\n"
+    "  B-D = succeeded with only minor issues\n"
+    "  E-G = above average, mostly correct with some issues\n"
+    "  H-J = uncertain, leans toward success\n"
+    "  K-M = uncertain, leans toward failure\n"
+    "  N-P = below average, significant issues remain\n"
+    "  Q-S = failed with some partial progress\n"
+    "  T = clearly and completely failed (worst)"
+)
+
+# Coarser scales keep the same 0/1-normalised support: the best letter is
+# worth `g`, the worst 1, and `extract_score` renormalises to [0, 1].
+_GENERIC_BANDS = [
+    "clearly and completely succeeded with verified output (best)",
+    "succeeded with only minor issues",
+    "above average, mostly correct with some issues",
+    "uncertain, leans toward success",
+    "uncertain, leans toward failure",
+    "below average, significant issues remain",
+    "failed with some partial progress",
+    "clearly and completely failed (worst)",
+]
+
+
+def _build_scale(granularity):
+    """Score scale (description + valid score tokens) for a `granularity`-point
+    letter scale A, B, C, ... — g=20 returns the upstream scale unchanged."""
+    gran = int(granularity)
+    if gran < 2:
+        raise ValueError(f"granularity must be >= 2, got {gran}")
+    letters = [chr(65 + i) for i in range(gran)]
+    if gran == 20:
+        description = _G20_DESCRIPTION
+    else:
+        # Anchor the band list to the ends of the scale (best letter = best
+        # band, worst letter = worst band) and interpolate the interior, so
+        # every letter is covered and quality decreases monotonically.
+        n_bands = len(_GENERIC_BANDS)
+        per_letter = [min(n_bands - 1,
+                          round(i * (n_bands - 1) / (gran - 1)))
+                      for i in range(gran)]
+        bands, start = [], 0
+        for i in range(1, gran + 1):
+            if i == gran or per_letter[i] != per_letter[start]:
+                label = (letters[start] if i - 1 == start
+                         else f"{letters[start]}-{letters[i - 1]}")
+                bands.append(f"  {label} = {_GENERIC_BANDS[per_letter[start]]}")
+                start = i
+        description = (
+            f"Rate how likely the agent correctly solved the task on a "
+            f"{gran}-point scale using letters A through {letters[-1]}:\n"
+            + "\n".join(bands))
+    return {
+        "scale_description": description,
+        "score_format": (f"LETTER_A_TO_{letters[-1]}" if gran != 20
+                         else "LETTER_A_TO_T"),
+        "valid_tokens": {
+            **{L: float(gran - i) for i, L in enumerate(letters)},
+            **{L.lower(): float(gran - i) for i, L in enumerate(letters)},
+        },
+    }
+
+
+GRANULARITY = int(os.environ.get("LLM_VERIFIER_GRANULARITY", GRANULARITY))
+SCALE = _build_scale(GRANULARITY)
 
 
 # ---------------------------------------------------------------------------
