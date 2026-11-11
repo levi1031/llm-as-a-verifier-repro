@@ -120,51 +120,53 @@ def add_table(prs, title, header, rows, notes="", footnote=""):
 
 
 def _script_html(md_lines, meta):
-    """Tiny markdown -> HTML for the printable script (headings, bold, lists)."""
+    """Tiny markdown -> HTML for the printable script.
+
+    Supports what the script uses: %, ##, ---, `timing`, > cue, **bold** and
+    GitHub-style tables."""
     import html as _html
-    out, in_list = [], False
-    for line in md_lines:
-        if line.strip() == "---":
-            if in_list:
-                out.append("</ul>"); in_list = False
-            out.append('<hr>')
-            continue
-        if line.startswith("## "):
-            if in_list:
-                out.append("</ul>"); in_list = False
-            out.append(f"<h2>{_html.escape(line[3:])}</h2>")
-            continue
-        if line.startswith("% "):
-            out.append(f"<h1>{_html.escape(line[2:])}</h1>")
-            continue
-        if line.startswith("```"):
-            continue
-        if line.startswith("`") and "·" in line:
-            if in_list:
-                out.append("</ul>"); in_list = False
-            out.append(f'<p class="timing">{_html.escape(line.replace("`", ""))}</p>')
-            continue
-        if line.startswith("> "):
-            if in_list:
-                out.append("</ul>"); in_list = False
-            cue = _html.escape(line[2:])
-            while "**" in cue:
-                cue = cue.replace("**", "<b>", 1).replace("**", "</b>", 1)
-            out.append(f'<p class="cue">{cue}</p>')
-            continue
-        if not line.strip():
-            if in_list:
-                out.append("</ul>"); in_list = False
-            continue
-        text = _html.escape(line)
+
+    def bold(text):
         while "**" in text:
             text = text.replace("**", "<b>", 1).replace("**", "</b>", 1)
-        if line.startswith("A: "):
-            out.append(f"<p>{text}</p>")
-        else:
-            out.append(f"<p>{text}</p>")
-    if in_list:
-        out.append("</ul>")
+        return text
+
+    out, i = [], 0
+    while i < len(md_lines):
+        line = md_lines[i]
+
+        # markdown table: a run of lines starting with |
+        if line.startswith("|"):
+            rows = []
+            while i < len(md_lines) and md_lines[i].startswith("|"):
+                cells = [c.strip() for c in md_lines[i].strip().strip("|").split("|")]
+                if not all(set(c) <= set("-: ") and c for c in cells):
+                    rows.append(cells)
+                i += 1
+            if rows:
+                out.append("<table>")
+                out.append("<tr>" + "".join(f"<th>{_html.escape(c)}</th>" for c in rows[0]) + "</tr>")
+                for r in rows[1:]:
+                    out.append("<tr>" + "".join(f"<td>{_html.escape(c)}</td>" for c in r) + "</tr>")
+                out.append("</table>")
+            continue
+
+        if line.strip() == "---":
+            out.append('<hr>')
+        elif line.startswith("## "):
+            out.append(f"<h2>{_html.escape(line[3:])}</h2>")
+        elif line.startswith("% "):
+            out.append(f"<h1>{_html.escape(line[2:])}</h1>")
+        elif line.startswith("```"):
+            pass
+        elif line.startswith("`") and "·" in line:
+            out.append(f'<p class="timing">{_html.escape(line.replace("`", ""))}</p>')
+        elif line.startswith("> "):
+            out.append(f'<p class="cue">{bold(_html.escape(line[2:]))}</p>')
+        elif line.strip():
+            out.append(f"<p>{bold(_html.escape(line))}</p>")
+        i += 1
+
     css = """
     @page { size: A4; margin: 18mm 18mm; }
     body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -177,6 +179,11 @@ def _script_html(md_lines, meta):
     .cue { font-size: 9.4pt; color: #b2452f; border-left: 2pt solid #e8c4ba;
            padding-left: 2mm; margin-left: 0; }
     hr { border: 0; border-top: 0.4pt solid #d3dae1; margin: 5mm 0; }
+    table { border-collapse: collapse; width: 100%; margin: 2mm 0 3mm;
+            font-size: 9pt; }
+    th { background: #eef3f8; text-align: left; padding: 1.5mm 2mm;
+         border-bottom: 0.8pt solid #b9c6d2; }
+    td { padding: 1.3mm 2mm; border-bottom: 0.4pt solid #e2e8ee; }
     """
     return ("<!doctype html><html><head><meta charset='utf-8'>"
             f"<title>Speaker script — {meta['student']}</title>"
