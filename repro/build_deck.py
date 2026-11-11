@@ -207,6 +207,8 @@ def main():
     ap.add_argument("--brief", action="store_true",
                     help="short reminder notes only, no speaker script "
                          "(used for the deck committed to the public repo)")
+    ap.add_argument("--variant", choices=("full", "short"), default="full",
+                    help="full ≈15 min script, or the short cut ≈8 min")
 
     args = ap.parse_args()
 
@@ -218,8 +220,10 @@ def main():
     if not args.brief:
         sys.path.insert(0, ROOT)
         try:
-            from repro.presentation_script import QA as _QA, SCRIPT as _S
-            SCRIPT, QA = _S, _QA
+            from repro.presentation_script import QA as _QA
+            from repro.presentation_script import SCRIPT as _FULL
+            from repro.presentation_script import SHORT as _SHORT
+            SCRIPT, QA = (_SHORT if args.variant == "short" else _FULL), _QA
         except ImportError:
             SCRIPT = QA = None
     runs = json.load(open(args.json))
@@ -427,9 +431,14 @@ def main():
         return " ".join(t.split())
 
     if SCRIPT:
-        for sl, (num, title, clock, secs, en, cue) in zip(prs.slides, SCRIPT):
+        by_num = {entry[0]: entry for entry in SCRIPT}
+        for idx, sl in enumerate(prs.slides, start=1):
+            entry = by_num.get(idx)
+            if not entry:
+                continue        # slide not used in this variant: keep brief note
+            _num, title, clock, secs, en, cue = entry
             sl.notes_slide.notes_text_frame.text = (
-                f"[{clock} · {secs}s · slide {num}] {title}\n\n"
+                f"[{clock} · {secs}s · slide {_num}] {title}\n\n"
                 f"{flatten(en)}\n\n"
                 f"中文提示：{cue}")
     prs.save(args.out)
@@ -440,7 +449,9 @@ def main():
     # ---- markdown + printable PDF of the same script ----
     total_words = sum(len(flatten(en).split()) for *_, en, _c in SCRIPT)
     total_secs = sum(secs for *_x, secs, _en, _c in SCRIPT)
-    md = ["% Reproducing LLM-as-a-Verifier — speaker script",
+    suffix = "" if args.variant == "full" else "_SHORT"
+    md = [f"% Reproducing LLM-as-a-Verifier — speaker script"
+          f"{'' if args.variant == 'full' else ' (short cut)'}",
           "",
           f"{meta['student']} · {meta['student_id']} · FTEC5660",
           "",
@@ -452,6 +463,18 @@ def main():
           "from Presenters View. The 中文提示 line is a one-sentence reminder of "
           "what the slide is for; do not read it out.",
           ""]
+    if args.variant == "short":
+        md += ["---", "",
+               "## 四个必答问题 → 对应幻灯片", "",
+               "| 作业要求 | 幻灯片 | 时间 |", "|---|---|---|",
+               "| 你尝试复现了什么 | 1 标题、2 论文声称、5 范围 | 0:00-2:25 |",
+               "| 你的修改及其可量化影响 | 8 修改、9 投票级影响 | 5:10-6:55 |",
+               "| 哪些成功 / 哪些没成功 | 4 数据一致、6 结果、7 one-hot、11 判定 | 1:50-5:10, 6:55-7:35 |",
+               "| 关键经验 + 给后续使用者的建议 | 12 三条建议 | 7:35-8:10 |",
+               "",
+               "Slides 3 (setup) and 10 (debug diary) are optional in the short "
+               "cut: 3 is worth including if the audience needs the deviation "
+               "context, and 10 adds 80 seconds if you have time.", ""]
     for num, title, clock, secs, en, cue in SCRIPT:
         words = len(flatten(en).split())
         md += [f"---", "",
@@ -476,7 +499,8 @@ def main():
            "",
            "It replays the tournament from the checked-in caches and prints the "
            "table, in about two seconds.", ""]
-    md_path = os.path.join(os.path.dirname(args.out), "PRESENTATION_SCRIPT.md")
+    md_path = os.path.join(os.path.dirname(args.out),
+                           f"PRESENTATION_SCRIPT{suffix}.md")
     open(md_path, "w").write("\n".join(md))
 
     html = _script_html(md, meta)

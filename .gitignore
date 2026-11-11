@@ -35,6 +35,7 @@ data/
 .chrome-home/
 
 # The speaker script is kept out of the public repo (local only)
-report/PRESENTATION_SCRIPT.*
+report/PRESENTATION_SCRIPT*
 report/presentation_with_notes.pptx
+report/presentation_short.pptx
 repro/presentation_script.py
