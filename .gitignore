@@ -1,0 +1,32 @@
+# Secrets — never commit real keys
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+.eggs/
+
+# Environments
+.venv/
+venv/
+env/
+
+# Generated plot artifacts
+progress_traces*.png
+
+# Verifier score caches and result tables — created on demand at runtime
+cache/
+results/
+
+# Sphinx build cache (only _build/html is committed)
+docs/_build/doctrees/
+
+# Run logs
+logs/
+
+# Reproduction: 58 MB of upstream data is fetched on demand
+# (see repro/fetch_data.py and repro/data_manifest.json)
+data/
