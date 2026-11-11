@@ -114,6 +114,7 @@ a second free check of the data, §4).
 <tr><td>machine / compute</td><td>Apple M-series laptop (arm64), no GPU, no Docker; two days of wall clock</td></tr>
 <tr><td>python / install</td><td>Python 3.13, <code>pip install -e .</code> in a venv (deps: <code>openai</code>, <code>tqdm</code>, <code>google-genai</code>); no GPU, no Docker</td></tr>
 <tr><td>data</td><td>authors' <code>data/terminal_bench_2.1_trajs/</code> — 89 tasks × 5 rollouts (481 files, 58 MB), pinned by sha256 in <code>repro/data_manifest.json</code></td></tr>
+<tr><td>credentials</td><td>one DeepSeek API key, read from <code>.env</code> only; <code>.env</code> is git-ignored and no key is in the repository, in the caches or in this report. Two endpoints were tried: the official <code>api.deepseek.com</code> (every number here) and a DeepSeek-compatible host that ran out of balance mid-run and was dropped (§7). Pushing the fork used a passphrase-less SSH key generated for this machine, removable from the account at any time.</td></tr>
 <tr><td>verifier backend (final)</td><td>api.deepseek.com, model `deepseek-flash` (DeepSeek V4.1 Flash), OpenAI-compatible, token logprobs available</td></tr>
 <tr><td>decoding</td><td>temperature 1.0, <code>top_logprobs=20</code>, <code>reasoning_effort=high</code>, <code>max_tokens=65536</code></td></tr>
 <tr><td>run config</td><td>first 3 trials/task, <code>K=2</code> verifications per comparison, <code>pivots=1</code>, criteria <code>specification</code>/<code>output_match</code>/<code>error_signals</code>, <code>seed=0</code> — identical to <code>scripts/run_tb2.1_bo3.py</code></td></tr>
@@ -130,12 +131,12 @@ its test-time-scaling table, and DeepSeek V4 Flash for the self-verification row
 tasks, metric and evaluation code are the authors'.</li>
 <li><b>Scope.</b> 12 of the 24 "swing" tasks, 3 seeds (§3).</li>
 <li><b>Logprob availability.</b> The primary backend returns token logprobs, so the paper's
-expectation path runs; §5 shows that path is degenerate here, and a second backend that returns
+expectation path runs; §6.2 shows that path is degenerate here, and a second backend that returns
 <i>no</i> logprobs reproduces the same scores through the text fallback.</li>
 </ol>
 </div>
 
-<h2 class="pb">3. Scope: why a subset, and why this one</h2>
+<h2>3. Scope: why a subset, and why this one</h2>
 <p>
 Of the 89 tasks, only the ones whose rollouts disagree can change under selection:
 <b>58 tasks are all-pass</b> and <b>7 are all-fail</b>, so they are decided before the verifier
@@ -149,7 +150,8 @@ I scoped to the <b>first 12 swing tasks in sorted order</b> — a mechanical rul
 a difficulty-based choice — because it kept a run inside both the API budget and a two-day
 deadline while leaving enough tasks for the claim to be visible. Two honest caveats:
 (i) task-level accuracy moves in steps of 8.3 points, and (ii) the seed
-count is bounded by budget, not by the pipeline (§4). The report therefore also gives
+count sits inside the assignment's 3-5 range, which is what §5 reports as mean ± std.
+The report therefore also gives
 <b>comparison-level</b> and <b>trial-level</b> statistics (31 disagreeing
 comparisons, 36 scored trials), which have more
 samples than the task count.
