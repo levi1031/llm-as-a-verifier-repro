@@ -175,7 +175,7 @@ def main():
          ["backend", "Vertex AI / DeepSeek", meta["backend"]],
          ["decoding", "T=1.0, logprobs", "T=1.0, thinking=high, text fallback"],
          ["scope", "66 tasks × 5 rollouts, 3 seeds",
-          f"{base['tasks']} swing tasks, {nseeds} seed(s) baseline"],
+          f"{base['tasks']} swing tasks, {nseeds} seed" + ("s" if nseeds > 1 else "") + " baseline"],
          ["config", "K=2, pivots=1, 3 criteria", "identical"],
          ["compute", "—", meta["compute"]]],
         "Two controlled deviations, both forced by the environment: the verifier model "
@@ -252,7 +252,9 @@ def main():
           (f"{seeds['pairwise_acc']['mean']:.1f}%"
            if (i == 0 and nseeds > 1) else
            f"{100*r['pairwise_agree']/max(1,r['pairwise_total']):.1f}%"),
-          f"{r['trial_auc']:.3f}"] for i, r in enumerate(runs)],
+          (f"{seeds['trial_auc']['mean']:.3f} ± {seeds['trial_auc']['std']:.3f}"
+           if (i == 0 and nseeds > 1) else f"{r['trial_auc']:.3f}")]
+         for i, r in enumerate(runs)],
         "One change, isolated in the scale definition: 20 letters (A-T) → 5 letters (A-E). "
         "Unset, the code is byte-identical to upstream. Caches are separate per configuration.",
         footnote=(meta["mod_note"] +
